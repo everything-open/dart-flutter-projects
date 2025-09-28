@@ -66,7 +66,7 @@ By contributing, you agree to follow the [Code of Conduct](CODE_OF_CONDUCT.md).
 
 ## Questions or Suggestions?
 
-If you have ideas or questions, open a discussion or [issue](issues/new/choose) in this repository.
+If you have ideas or questions, open a [discussion](../../discussions) or [issue](../../issues/new/choose) in this repository.
 
 ---
 
