@@ -116,14 +116,14 @@ jobs:
 
       - name: Create PR body file
         run: |
-          cat > pr_body.txt << 'EOF'
+          cat > pr_body.txt << EOF
           This pull request was automatically generated from [issue #${{ github.event.issue.number }}](${{ github.event.issue.html_url }}).
 
           **Project Details:**
-          - **Name:** ${{ needs.validate.outputs.name }}
-          - **Level:** ${{ needs.validate.outputs.level }}
-          - **Repository:** ${{ needs.validate.outputs.url }}
-          - **Description:** ${{ needs.validate.outputs.desc }}
+          - **Name:** ${PROJECT_NAME}
+          - **Level:** ${PROJECT_LEVEL}
+          - **Repository:** ${PROJECT_URL}
+          - **Description:** ${PROJECT_DESC}
           EOF
 
       - name: Commit and create PR
