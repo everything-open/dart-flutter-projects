@@ -45,7 +45,8 @@ jobs:
             }
 
             if (missing.length > 0) {
-              const message = `⚠️ Thank you for your submission! However, it looks like you are missing the following required fields:\n\n${missing.map(f => `- ${f}`).join("\n")}\n\nPlease edit your issue to include them.`;
+              const message = `⚠️ Thank you for your submission! However, it looks like you are missing the following required fields:\n\n${missing.map(f => `- ${f}`).join("\n")}\n\nPlease edit your issue to include these details.`;
+              
               await github.rest.issues.createComment({
                 issue_number: context.issue.number,
                 owner: context.repo.owner,
@@ -89,10 +90,10 @@ jobs:
                 return "";
               }
 
-              const name = extract("Project Name:");
-              const url = extract("Repository URL:");
-              const desc = extract("Short Description:");
-              const level = extract("Contribution Level:");
+              const name = extract("**Project Name:**");
+              const url = extract("**Repository URL:**");
+              const desc = extract("**Short Description:**");
+              const level = extract("**Contribution Level:**");
               
               // Log extracted values for debugging
               console.log("Extracted values:");
@@ -135,20 +136,20 @@ jobs:
       - name: Create PR body file
         run: |
           cat > pr_body.txt << EOF
-This pull request was automatically generated from [issue #${{ github.event.issue.number }}](${{ github.event.issue.html_url }}).
+          This pull request was automatically generated from [issue #${{ github.event.issue.number }}](${{ github.event.issue.html_url }}).
 
-**Project Details:**
-- **Name:** ${PROJECT_NAME}
-- **Level:** ${PROJECT_LEVEL}
-- **Repository:** ${PROJECT_URL}
-- **Description:** ${PROJECT_DESC}
-EOF
+          **Project Details:**
+          - **Name:** ${PROJECT_NAME}
+          - **Level:** ${PROJECT_LEVEL}
+          - **Repository:** ${PROJECT_URL}
+          - **Description:** ${PROJECT_DESC}
+          EOF
 
       - name: Commit and create PR
-        uses: peter-evans/create-pull-request@v6
+        uses: peter-evans/create-pull-request@v7
         with:
           token: ${{ secrets.PAT_TOKEN }}
-          commit-message: "Add project: ${{ env.PROJECT_NAME }}"
+          commit-message: "Add project: $PROJECT_NAME"
           branch: add-project-${{ github.event.issue.number }}
-          title: "Add project: ${{ env.PROJECT_NAME }}"
+          title: "Add project: $PROJECT_NAME"
           body-path: pr_body.txt
