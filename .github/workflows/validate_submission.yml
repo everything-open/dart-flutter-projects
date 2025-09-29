@@ -130,7 +130,7 @@ jobs:
         uses: peter-evans/create-pull-request@v6
         with:
           token: ${{ secrets.PAT_TOKEN }}
-          commit-message: "Add project: $PROJECT_NAME"
+          commit-message: "Add project: ${{ env.PROJECT_NAME }}"
           branch: add-project-${{ github.event.issue.number }}
-          title: "Add project: $PROJECT_NAME"
+          title: "Add project: ${{ env.PROJECT_NAME }}"
           body-path: pr_body.txt
