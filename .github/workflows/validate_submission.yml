@@ -11,129 +11,145 @@ permissions:
 
 jobs:
   validate:
-    name: Validate Submission
+    if: contains(github.event.issue.title, '[Project Submission]')
     runs-on: ubuntu-latest
     outputs:
-      validated: ${{ steps.parse.outputs.validated }}
-      project_name: ${{ steps.parse.outputs.project_name }}
-      project_url: ${{ steps.parse.outputs.project_url }}
-      project_desc: ${{ steps.parse.outputs.project_desc }}
-      project_level: ${{ steps.parse.outputs.project_level }}
+      validated: ${{ steps.validate.outputs.validated }}
+      name: ${{ steps.validate.outputs.name }}
+      url: ${{ steps.validate.outputs.url }}
+      desc: ${{ steps.validate.outputs.desc }}
+      level: ${{ steps.validate.outputs.level }}
     steps:
-      - name: Check Issue Title
-        id: check_title
-        run: |
-          if [[ "${{ github.event.issue.title }}" != *"[Project Submission]"* ]]; then
-            echo "Not a project submission."
-            echo "validated=false" >> $GITHUB_OUTPUT
-            exit 0
-          fi
-
-      - name: Parse and Validate Required Fields
-        id: parse
+      - name: Check required fields
+        id: validate
         uses: actions/github-script@v7
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             const body = context.payload.issue.body || "";
 
-            function getField(field) {
-              // Tries both "Field: value" and "Field:\nvalue"
-              let regex = new RegExp(`\\*\\*${field}:\\*\\*\\s*(.*)`, "i");
-              let match = body.match(regex);
-              if (match && match[1].trim()) return match[1].trim();
-
-              regex = new RegExp(`\\*\\*${field}:\\*\\*\\s*\\n\\s*(.*)`, "i");
-              match = body.match(regex);
-              if (match && match[1].trim()) return match[1].trim();
-
-              return "";
-            }
-
+            // Required fields
             const requiredFields = [
-              "Project Name",
-              "Repository URL",
-              "Short Description",
-              "Contribution Level",
-              "Areas of Contribution"
+              "Project Name:",
+              "Repository URL:",
+              "Short Description:",
+              "Contribution Level:",
+              "Areas of Contribution:"
             ];
 
             let missing = [];
-            let results = {};
             for (const field of requiredFields) {
-              const value = getField(field);
-              results[field] = value;
-              if (!value) missing.push(field);
+              if (!body.includes(field)) {
+                missing.push(field);
+              }
             }
 
             if (missing.length > 0) {
-              const msg = `⚠️ Thank you for your submission! Missing required fields:\n\n${missing.map(f => `- **${f}:**`).join("\n")}\n\nPlease edit your issue to include them.`;
+              const message = `⚠️ Thank you for your submission! However, it looks like you are missing the following required fields:\n\n${missing.map(f => `- ${f}`).join("\n")}\n\nPlease edit your issue to include these details.`;
+              
               await github.rest.issues.createComment({
-                ...context.issue,
-                body: msg
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: message
               });
+
               await github.rest.issues.addLabels({
-                ...context.issue,
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
                 labels: ["needs-info"]
               });
-              core.setOutput("validated", "false");
+
+              core.setOutput('validated', 'false');
             } else {
+              // Add "valid-submission" label
               await github.rest.issues.addLabels({
-                ...context.issue,
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
                 labels: ["valid-submission"]
               });
-              core.setOutput("validated", "true");
-              core.setOutput("project_name", results["Project Name"]);
-              core.setOutput("project_url", results["Repository URL"]);
-              core.setOutput("project_desc", results["Short Description"]);
-              core.setOutput("project_level", results["Contribution Level"]);
+
+              // Extract fields - handles both same-line and next-line values
+              function extract(field) {
+                // Try same line first: "Field: value"
+                const sameLine = new RegExp(`${field}\\s*(.+)`, 'i');
+                let match = body.match(sameLine);
+                if (match && match[1].trim()) {
+                  return match[1].trim();
+                }
+                
+                // Try next line: "Field:\nvalue"
+                const nextLine = new RegExp(`${field}\\s*\\n\\s*(.+)`, 'i');
+                match = body.match(nextLine);
+                if (match && match[1].trim()) {
+                  return match[1].trim();
+                }
+                
+                return "";
+              }
+
+              const name = extract("Project Name:");
+              const url = extract("Repository URL:");
+              const desc = extract("Short Description:");
+              const level = extract("Contribution Level:");
+              
+              // Log extracted values for debugging
+              console.log("Extracted values:");
+              console.log("Name:", name);
+              console.log("URL:", url);
+              console.log("Description:", desc);
+              console.log("Level:", level);
+
+              core.setOutput('validated', 'true');
+              core.setOutput('name', name);
+              core.setOutput('url', url);
+              core.setOutput('desc', desc);
+              core.setOutput('level', level);
             }
 
   create-pr:
-    name: Create Project PR
     needs: validate
     if: needs.validate.outputs.validated == 'true'
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Repository
+      - name: Checkout repo
         uses: actions/checkout@v4
 
-      - name: Prepare Project Entry
-        id: entry
+      - name: Set project details as env vars
         run: |
-          NAME="${{ needs.validate.outputs.project_name }}"
-          URL="${{ needs.validate.outputs.project_url }}"
-          DESC="${{ needs.validate.outputs.project_desc }}"
-          LEVEL=$(echo "${{ needs.validate.outputs.project_level }}" | tr '[:upper:]' '[:lower:]')
-          if [[ "$LEVEL" == *professional* ]]; then
+          echo "PROJECT_NAME=${{ needs.validate.outputs.name }}" >> $GITHUB_ENV
+          echo "PROJECT_URL=${{ needs.validate.outputs.url }}" >> $GITHUB_ENV
+          echo "PROJECT_DESC=${{ needs.validate.outputs.desc }}" >> $GITHUB_ENV
+          echo "PROJECT_LEVEL=${{ needs.validate.outputs.level }}" >> $GITHUB_ENV
+
+      - name: Append project entry
+        run: |
+          FILE="PROJECTS/BEGINNER_PROJECTS.md"
+          if [[ "$PROJECT_LEVEL" =~ [Pp]rofessional ]]; then
             FILE="PROJECTS/PROFESSIONAL_PROJECTS.md"
-          else
-            FILE="PROJECTS/BEGINNER_PROJECTS.md"
           fi
-          echo "file=$FILE" >> $GITHUB_OUTPUT
-          echo "- [$NAME]($URL) - $DESC" > new_entry.txt
 
-      - name: Append Project to List
-        run: |
-          cat new_entry.txt >> "${{ steps.entry.outputs.file }}"
+          echo "- [$PROJECT_NAME]($PROJECT_URL) - $PROJECT_DESC" >> "$FILE"
 
-      - name: Create PR Body
+      - name: Create PR body file
         run: |
           cat > pr_body.txt << EOF
-          This PR was created automatically from [issue #${{ github.event.issue.number }}](${{ github.event.issue.html_url }}).
+          This pull request was automatically generated from [issue #${{ github.event.issue.number }}](${{ github.event.issue.html_url }}).
 
-          **Project Details**
-          - **Name:** ${{ needs.validate.outputs.project_name }}
-          - **Level:** ${{ needs.validate.outputs.project_level }}
-          - **Repository:** ${{ needs.validate.outputs.project_url }}
-          - **Description:** ${{ needs.validate.outputs.project_desc }}
+          **Project Details:**
+          - **Name:** ${PROJECT_NAME}
+          - **Level:** ${PROJECT_LEVEL}
+          - **Repository:** ${PROJECT_URL}
+          - **Description:** ${PROJECT_DESC}
           EOF
 
-      - name: Commit and Open Pull Request
+      - name: Commit and create PR
         uses: peter-evans/create-pull-request@v6
         with:
           token: ${{ secrets.PAT_TOKEN }}
-          commit-message: "Add project: ${{ needs.validate.outputs.project_name }}"
-          branch: "add-project-${{ github.event.issue.number }}"
-          title: "Add project: ${{ needs.validate.outputs.project_name }}"
+          commit-message: "Add project: $PROJECT_NAME"
+          branch: add-project-${{ github.event.issue.number }}
+          title: "Add project: $PROJECT_NAME"
           body-path: pr_body.txt
