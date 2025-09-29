@@ -1,8 +1,13 @@
-name: Validate Project Submission
+name: Validate and Add Project Submission
 
 on:
   issues:
     types: [opened, edited, labeled]
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
 
 jobs:
   validate:
@@ -10,6 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Validate submission fields
+        id: validate
         uses: actions/github-script@v7
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -58,6 +64,9 @@ jobs:
                 repo: context.repo.repo,
                 labels: ["valid-submission"]
               });
+
+              core.setOutput("validated", "true");
+              core.setOutput("body", body);
             }
 
   auto-close:
@@ -73,3 +82,49 @@ jobs:
           stale-issue-message: "This submission has been marked as needing more information and has not been updated in 7 days. Closing this issue. Please feel free to resubmit once all required fields are provided."
           close-issue-message: "Closed due to inactivity."
           only-labels: "needs-info"
+
+  create-pr:
+    needs: validate
+    if: needs.validate.outputs.validated == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Extract submission details
+        id: extract
+        run: |
+          BODY="${{ needs.validate.outputs.body }}"
+
+          NAME=$(echo "$BODY" | grep "Project Name:" | sed 's/Project Name://g' | xargs)
+          URL=$(echo "$BODY" | grep "Repository URL:" | sed 's/Repository URL://g' | xargs)
+          DESC=$(echo "$BODY" | grep "Short Description:" | sed 's/Short Description://g' | xargs)
+          LEVEL=$(echo "$BODY" | grep "Contribution Level:" | sed 's/Contribution Level://g' | xargs)
+
+          echo "name=$NAME" >> $GITHUB_OUTPUT
+          echo "url=$URL" >> $GITHUB_OUTPUT
+          echo "desc=$DESC" >> $GITHUB_OUTPUT
+          echo "level=$LEVEL" >> $GITHUB_OUTPUT
+
+      - name: Update project list
+        run: |
+          FILE="BEGINNER_PROJECTS.md"
+          if [[ "${{ steps.extract.outputs.level }}" =~ [Pp]rofessional ]]; then
+            FILE="PROFESSIONAL_PROJECTS.md"
+          fi
+
+          echo "- [${{ steps.extract.outputs.name }}](${{ steps.extract.outputs.url }}) - ${{ steps.extract.outputs.desc }}" >> "$FILE"
+
+      - name: Commit and create PR
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "Add project: ${{ steps.extract.outputs.name }}"
+          branch: add-project-${{ github.event.issue.number }}
+          title: "Add project: ${{ steps.extract.outputs.name }}"
+          body: |
+            This pull request was automatically generated from [issue #${{ github.event.issue.number }}](${{ github.event.issue.html_url }}).
+
+            Project: **${{ steps.extract.outputs.name }}**  
+            Level: **${{ steps.extract.outputs.level }}**  
+            Repo: ${{ steps.extract.outputs.url }}
