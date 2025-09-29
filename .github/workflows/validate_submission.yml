@@ -163,7 +163,7 @@ jobs:
       - name: Create PR body file
         run: |
           # Use shell variable expansion ($VAR) which is safe here
-          cat > pr_body.txt << EOF
+          cat > $RUNNER_TEMP/pr_body.txt << EOF
           This pull request was automatically generated from [issue #${{ github.event.issue.number }}](${{ github.event.issue.html_url }}).
 
           **Project Details:**
@@ -180,4 +180,4 @@ jobs:
           commit-message: "Add project: ${{ env.PROJECT_NAME }}"
           branch: add-project-${{ github.event.issue.number }}
           title: "Add project: ${{ env.PROJECT_NAME }}"
-          body-path: pr_body.txt
+          body-path: ${{ runner.temp }}/pr_body.txt

@@ -1,7 +1,0 @@
-This pull request was automatically generated from [issue #18](https://github.com/everything-open/dart-flutter-projects/issues/18).
-
-**Project Details:**
-- **Name:** api_gen
-- **Level:** Professional
-- **Repository:** https://github.com/mrrda1969/api_gen
-- **Description:** A code generator package for generating models from JSON file.
