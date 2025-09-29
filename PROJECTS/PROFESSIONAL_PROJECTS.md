@@ -16,5 +16,3 @@ These projects often involve more complex codebases, advanced Flutter concepts, 
 ## Project List
 
 _This list is updated automatically via project submissions._
-
-- _(No professional projects listed yet — be the first to submit yours!)_

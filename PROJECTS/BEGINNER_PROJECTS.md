@@ -16,6 +16,3 @@ These projects are great for contributors who are new to open source, Dart, or F
 ## Project List
 
 _This list is updated automatically via project submissions._
-
-- _(No beginner projects listed yet — be the first to submit yours!)_
-- [**](**) - **
