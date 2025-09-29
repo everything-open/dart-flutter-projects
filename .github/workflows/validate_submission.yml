@@ -29,7 +29,6 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             // Import 'core' for setting outputs
-            const core = require('@actions/core');
             const body = context.payload.issue.body || "";
 
             // Required fields
