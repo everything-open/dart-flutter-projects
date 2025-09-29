@@ -18,3 +18,4 @@ These projects often involve more complex codebases, advanced Flutter concepts, 
 _This list is updated automatically via project submissions._
 
 - _(No professional projects listed yet — be the first to submit yours!)_
+- [** api_gen](** https://github.com/mrrda1969/api_gen) - ** A code generator package for generating models from JSON file.
