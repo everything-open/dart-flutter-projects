@@ -98,25 +98,39 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
 
+      - name: Set project details as env vars
+        run: |
+          echo "PROJECT_NAME=${{ needs.validate.outputs.name }}" >> $GITHUB_ENV
+          echo "PROJECT_URL=${{ needs.validate.outputs.url }}" >> $GITHUB_ENV
+          echo "PROJECT_DESC=${{ needs.validate.outputs.desc }}" >> $GITHUB_ENV
+          echo "PROJECT_LEVEL=${{ needs.validate.outputs.level }}" >> $GITHUB_ENV
+
       - name: Append project entry
         run: |
           FILE="PROJECTS/BEGINNER_PROJECTS.md"
-          if [[ "${{ needs.validate.outputs.level }}" =~ [Pp]rofessional ]]; then
+          if [[ "$PROJECT_LEVEL" =~ [Pp]rofessional ]]; then
             FILE="PROJECTS/PROFESSIONAL_PROJECTS.md"
           fi
 
-          echo "- [${{ needs.validate.outputs.name }}](${{ needs.validate.outputs.url }}) - ${{ needs.validate.outputs.desc }}" >> "$FILE"
+          echo "- [$PROJECT_NAME]($PROJECT_URL) - $PROJECT_DESC" >> "$FILE"
+
+      - name: Create PR body file
+        run: |
+          cat > pr_body.txt << 'EOF'
+          This pull request was automatically generated from [issue #${{ github.event.issue.number }}](${{ github.event.issue.html_url }}).
+
+          **Project Details:**
+          - **Name:** ${{ needs.validate.outputs.name }}
+          - **Level:** ${{ needs.validate.outputs.level }}
+          - **Repository:** ${{ needs.validate.outputs.url }}
+          - **Description:** ${{ needs.validate.outputs.desc }}
+          EOF
 
       - name: Commit and create PR
         uses: peter-evans/create-pull-request@v6
         with:
           token: ${{ secrets.PAT_TOKEN }}
-          commit-message: "Add project: ${{ needs.validate.outputs.name }}"
+          commit-message: "Add project: $PROJECT_NAME"
           branch: add-project-${{ github.event.issue.number }}
-          title: "Add project: ${{ needs.validate.outputs.name }}"
-          body: |
-            This pull request was automatically generated from [issue #${{ github.event.issue.number }}](${{ github.event.issue.html_url }}).
-
-            Project: **${{ needs.validate.outputs.name }}**  
-            Level: **${{ needs.validate.outputs.level }}**  
-            Repo: ${{ needs.validate.outputs.url }}
+          title: "Add project: $PROJECT_NAME"
+          body-path: pr_body.txt
