@@ -92,13 +92,16 @@ jobs:
               }
 
               function extract(field) {
-                const safeField = escapeRegex(field);
-                const sameLine = new RegExp(`${safeField}\\s*(.+)`, 'i');
+                // Accept optional bold (**), optional spaces, and colon
+                const fieldPattern = `\\*{0,2}\\s*${escapeRegex(field)}\\s*\\*{0,2}`;
+                // Try same line: Field: value
+                let sameLine = new RegExp(`${fieldPattern}\\s*:?\\s*(.+)`, 'i');
                 let match = body.match(sameLine);
                 if (match && match[1].trim()) {
                   return match[1].trim();
                 }
-                const nextLine = new RegExp(`${safeField}\\s*\\n\\s*(.+)`, 'i');
+                // Try next line: Field:\nvalue
+                let nextLine = new RegExp(`${fieldPattern}\\s*:?\\s*\\n\\s*(.+)`, 'i');
                 match = body.match(nextLine);
                 if (match && match[1].trim()) {
                   return match[1].trim();
@@ -106,10 +109,10 @@ jobs:
                 return "";
               }
 
-              const name = extract("Project Name:");
-              const url = extract("Repository URL:");
-              const desc = extract("Short Description:");
-              const level = extract("Contribution Level:");
+              const name = extract("Project Name");
+              const url = extract("Repository URL");
+              const desc = extract("Short Description");
+              const level = extract("Contribution Level");
               
               // Log extracted values for debugging
               console.log("Extracted values:");
