@@ -21,42 +21,17 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             const body = context.payload.issue.body || "";
-
-            const requiredFields = [
-              "Project Name:",
-              "Repository URL:",
-              "Short Description:",
-              "Contribution Level:",
-              "Areas of Contribution:"
-            ];
-
+            const requiredFields = ["Project Name:", "Repository URL:", "Short Description:", "Contribution Level:", "Areas of Contribution:"];
             let missing = requiredFields.filter(field => !body.includes(field));
 
             if (missing.length > 0) {
-              const warning = [
-                "Thank you for your submission!",
-                "",
-                "It looks like the following required fields are missing:",
-                ...missing.map(f => `- ${f}`),
-                "",
-                "Please edit your issue to include these details. Issues missing required fields will be closed automatically after 7 days."
-              ].join("\n");
-
               await github.issues.createComment({
                 issue_number: context.issue.number,
                 owner: context.repo.owner,
                 repo: context.repo.repo,
-                body: warning
+                body: `Missing required fields:\n${missing.join("\n")}`
               });
-
-              await github.issues.addLabels({
-                issue_number: context.issue.number,
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                labels: ["needs-info"]
-              });
-
-              core.setFailed("Missing required fields in project submission.");
+              core.setOutput("validated", "false");
             } else {
               await github.issues.addLabels({
                 issue_number: context.issue.number,
@@ -64,9 +39,7 @@ jobs:
                 repo: context.repo.repo,
                 labels: ["valid-submission"]
               });
-
-              core.setOutput("validated", "true");
-              core.setOutput("body", body);
+              require('fs').appendFileSync(process.env.GITHUB_OUTPUT, `validated=true\nbody<<EOF\n${body}\nEOF\n`);
             }
 
   auto-close:
