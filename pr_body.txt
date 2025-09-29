@@ -1,0 +1,7 @@
+This pull request was automatically generated from [issue #2](https://github.com/everything-open/dart-flutter-projects/issues/2).
+
+**Project Details:**
+- **Name:** **
+- **Level:** **
+- **Repository:** **
+- **Description:** **
