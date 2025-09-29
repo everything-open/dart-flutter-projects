@@ -110,7 +110,7 @@ jobs:
       - name: Commit and create PR
         uses: peter-evans/create-pull-request@v6
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.PAT_TOKEN }}
           commit-message: "Add project: ${{ needs.validate.outputs.name }}"
           branch: add-project-${{ github.event.issue.number }}
           title: "Add project: ${{ needs.validate.outputs.name }}"
