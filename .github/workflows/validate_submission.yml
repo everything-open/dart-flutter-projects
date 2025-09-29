@@ -11,10 +11,16 @@ permissions:
 
 jobs:
   validate:
-    runs-on: ubuntu-latest
     if: contains(github.event.issue.title, '[Project Submission]')
+    runs-on: ubuntu-latest
+    outputs:
+      validated: ${{ steps.validate.outputs.validated }}
+      name: ${{ steps.validate.outputs.name }}
+      url: ${{ steps.validate.outputs.url }}
+      desc: ${{ steps.validate.outputs.desc }}
+      level: ${{ steps.validate.outputs.level }}
     steps:
-      - name: Validate submission fields
+      - name: Check required fields
         id: validate
         uses: actions/github-script@v7
         with:
@@ -22,6 +28,7 @@ jobs:
           script: |
             const body = context.payload.issue.body || "";
 
+            // Required fields
             const requiredFields = [
               "Project Name:",
               "Repository URL:",
@@ -30,25 +37,23 @@ jobs:
               "Areas of Contribution:"
             ];
 
-            let missing = requiredFields.filter(field => !body.includes(field));
+            let missing = [];
+            for (const field of requiredFields) {
+              if (!body.includes(field)) {
+                missing.push(field);
+              }
+            }
 
             if (missing.length > 0) {
-              // Comment on issue
+              const message = `⚠️ Thank you for your submission! However, it looks like you are missing the following required fields:\n\n${missing.map(f => `- ${f}`).join("\n")}\n\nPlease edit your issue to include these details.`;
+              
               await github.rest.issues.createComment({
                 issue_number: context.issue.number,
                 owner: context.repo.owner,
                 repo: context.repo.repo,
-                body: [
-                  "Thank you for your submission!",
-                  "",
-                  "It looks like the following required fields are missing:",
-                  ...missing.map(f => `- ${f}`),
-                  "",
-                  "Please edit your issue to include these details. Issues missing required fields will be closed automatically after 7 days."
-                ].join("\n")
+                body: message
               });
 
-              // Add needs-info label
               await github.rest.issues.addLabels({
                 issue_number: context.issue.number,
                 owner: context.repo.owner,
@@ -56,12 +61,9 @@ jobs:
                 labels: ["needs-info"]
               });
 
-              require('fs').appendFileSync(
-                process.env.GITHUB_OUTPUT,
-                `validated=false\n`
-              );
+              core.setOutput('validated', 'false');
             } else {
-              // Add valid-submission label
+              // Add "valid-submission" label
               await github.rest.issues.addLabels({
                 issue_number: context.issue.number,
                 owner: context.repo.owner,
@@ -81,29 +83,12 @@ jobs:
               const desc = extract("Short Description:");
               const level = extract("Contribution Level:");
 
-              require('fs').appendFileSync(
-                process.env.GITHUB_OUTPUT,
-                `validated=true\n` +
-                `name=${name}\n` +
-                `url=${url}\n` +
-                `desc=${desc}\n` +
-                `level=${level}\n`
-              );
+              core.setOutput('validated', 'true');
+              core.setOutput('name', name);
+              core.setOutput('url', url);
+              core.setOutput('desc', desc);
+              core.setOutput('level', level);
             }
-
-  auto-close:
-    runs-on: ubuntu-latest
-    if: github.event.label.name == 'needs-info'
-    steps:
-      - name: Close issues older than 7 days with 'needs-info' label
-        uses: actions/stale@v9
-        with:
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
-          days-before-stale: 7
-          days-before-close: 0
-          stale-issue-message: "This submission has been marked as needing more information and has not been updated in 7 days. Closing this issue. Please feel free to resubmit once all required fields are provided."
-          close-issue-message: "Closed due to inactivity."
-          only-labels: "needs-info"
 
   create-pr:
     needs: validate
