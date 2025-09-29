@@ -91,23 +91,26 @@ jobs:
                 return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
               }
 
-              function extract(field) {
-                // Accept optional bold (**), optional spaces, and colon
-                const fieldPattern = `\\*{0,2}\\s*${escapeRegex(field)}\\s*\\*{0,2}`;
-                // Try same line: Field: value
-                let sameLine = new RegExp(`${fieldPattern}\\s*:?\\s*(.+)`, 'i');
-                let match = body.match(sameLine);
-                if (match && match[1].trim()) {
-                  return match[1].trim();
+              function cleanExtracted(value) {
+                  // Remove leading/trailing asterisks, colons, and whitespace
+                  return value.replace(/^(\*+|\s|:)+|(\*+|\s|:)+$/g, '');
                 }
-                // Try next line: Field:\nvalue
-                let nextLine = new RegExp(`${fieldPattern}\\s*:?\\s*\\n\\s*(.+)`, 'i');
-                match = body.match(nextLine);
-                if (match && match[1].trim()) {
-                  return match[1].trim();
+
+                function extract(field) {
+                  // Accept optional bold (**), optional spaces, and colon
+                  const fieldPattern = `\\*{0,2}\\s*${escapeRegex(field)}\\s*\\*{0,2}`;
+                  let sameLine = new RegExp(`${fieldPattern}\\s*:?\\s*(.+)`, 'i');
+                  let match = body.match(sameLine);
+                  if (match && match[1].trim()) {
+                    return cleanExtracted(match[1].trim());
+                  }
+                  let nextLine = new RegExp(`${fieldPattern}\\s*:?\\s*\\n\\s*(.+)`, 'i');
+                  match = body.match(nextLine);
+                  if (match && match[1].trim()) {
+                    return cleanExtracted(match[1].trim());
+                  }
+                  return "";
                 }
-                return "";
-              }
 
               const name = extract("Project Name");
               const url = extract("Repository URL");

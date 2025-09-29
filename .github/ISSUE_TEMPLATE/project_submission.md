@@ -8,25 +8,15 @@ assignees: []
 
 ## Project Information
 
-**Project Name:**
+**Project Name:** <!-- Enter the name of your project -->
 
-<!-- Enter the name of your project -->
+**Repository URL:** <!-- Provide the GitHub repo link -->
 
-**Repository URL:**
+**Short Description:** <!-- A concise description of what the project does -->
 
-<!-- Provide the GitHub repo link -->
+**Contribution Level:** <!-- Choose one: Beginner / Professional -->
 
-**Short Description:**
-
-<!-- A concise description of what the project does -->
-
-**Contribution Level:**
-
-<!-- Choose one: Beginner / Professional -->
-
-**Areas of Contribution:**
-
-<!-- Examples: documentation, bug fixes, new features, testing, UI/UX, etc. -->
+**Areas of Contribution:** <!-- Examples: documentation, bug fixes, new features, testing, UI/UX, etc. -->
 
 ---
 
